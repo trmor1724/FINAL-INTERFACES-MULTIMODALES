@@ -1,1 +1,6 @@
 streamlit
+speechrecognition
+pyaudio
+pillow
+numpy
+opencv-python
