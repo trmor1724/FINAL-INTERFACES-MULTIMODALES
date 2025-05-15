@@ -1,3 +1,3 @@
 import streamlit as st
 
-st.title("Pagina 1")
+st.title("Verificación de acceso")
