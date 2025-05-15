@@ -1,3 +1,3 @@
 import streamlit as st
 
-st.title("Control y monitoreo")
+st.title("Interacción con el mundo físico")
