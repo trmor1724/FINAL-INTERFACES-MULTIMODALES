@@ -3,6 +3,17 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 import os
+import tensorflow.keras.layers as layers
+
+# Parche para ignorar el argumento 'groups' en DepthwiseConv2D
+original_init = layers.DepthwiseConv2D.__init__
+
+def new_init(self, *args, **kwargs):
+    if 'groups' in kwargs:
+        kwargs.pop('groups')
+    original_init(self, *args, **kwargs)
+
+layers.DepthwiseConv2D.__init__ = new_init
 
 # --- Configuración de la app ---
 st.set_page_config(page_title="Verificación de acceso", layout="centered")
