@@ -20,7 +20,7 @@ def on_message(client, userdata, message):
 # Configurar broker MQTT
 broker = "broker.mqttdashboard.com"
 port = 1883
-client1 = paho.Client("erradura_inteligente")
+client1 = paho.Client(client_id="cerradura_inteligente")
 client1.on_message = on_message
 client1.on_publish = on_publish
 client1.connect(broker, port)
