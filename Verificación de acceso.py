@@ -48,7 +48,7 @@ if st.button("Verificar acceso"):
     if model is None:
         st.error("❌ No se pudo cargar el modelo. La verificación no es posible.")
     elif not texto or "abrir la puerta" not in texto.lower():
-        st.error("❌ Comando incorrecto. Debes escribir: 'abrir la puerta'")
+        st.error("❌ Comando incorrecto.")
     elif not imagen_cargada and not imagen_camara:
         st.warning("⚠️ Debes subir una imagen o tomar una foto.")
     else:
