@@ -6,7 +6,7 @@ import tensorflow as tf  # <-- Este requiere que lo instales vía requirements.t
 # Cargar modelo
 @st.cache_resource
 def cargar_modelo():
-    modelo = tf.keras.models.load_model("modelo.h5")
+    modelo = tf.keras.models.load_model("keras_model.h5")
     return modelo
 
 modelo = cargar_modelo()
