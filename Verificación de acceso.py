@@ -8,7 +8,6 @@ import platform
 # --- Configuración de la app ---
 st.set_page_config(page_title="Verificación de acceso", layout="centered")
 st.title("🔐 Verificación de acceso con Teachable Machine")
-st.write("Sube una imagen o toma una foto para comprobar si eres un usuario autorizado.")
 
 # Mostrar versión de Python
 st.write("Versión de Python:", platform.python_version())
@@ -19,6 +18,7 @@ texto = st.text_input("Escribe el comando para abrir la puerta (ej: abrir la pue
 # Subir imagen o tomar foto
 imagen_cargada = st.file_uploader("Sube una imagen para verificar identidad", type=["jpg", "png"])
 imagen_camara = st.camera_input("O toma una foto con la cámara")
+st.write("Sube una imagen o toma una foto para comprobar si eres un usuario autorizado.")
 
 # Procesamiento de imagen para modelo Teachable Machine (224x224)
 def preparar_imagen(imagen):
