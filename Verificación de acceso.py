@@ -13,22 +13,6 @@ st.write("Sube una imagen o toma una foto para comprobar si eres un usuario auto
 # Mostrar versión de Python
 st.write("Versión de Python:", platform.python_version())
 
-# --- Función para cargar el modelo con manejo de error ---
-@st.cache_resource
-def cargar_modelo():
-    model_path = "keras_model.h5"
-    if not os.path.exists(model_path):
-        st.error(f"❌ Archivo del modelo no encontrado en la ruta: {model_path}")
-        return None
-    try:
-        model = tf.keras.models.load_model(model_path)
-        return model
-    except Exception as e:
-        st.error(f"❌ Error cargando el modelo: {e}")
-        return None
-
-model = cargar_modelo()
-
 # Entrada de texto para comando
 texto = st.text_input("Escribe el comando para abrir la puerta (ej: abrir la puerta)")
 
