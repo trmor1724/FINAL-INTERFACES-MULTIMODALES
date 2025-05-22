@@ -1,7 +1,4 @@
 streamlit
-speechrecognition
-pyaudio
-pillow
-numpy
-opencv-python
 tensorflow
+numpy
+pillow
