@@ -1,44 +1,56 @@
 import streamlit as st
-from PIL import Image
+import tensorflow as tf
 import numpy as np
-import tensorflow as tf  # <-- Este requiere que lo instales vía requirements.txt
+from PIL import Image
 
-# Cargar modelo
+# --- Cargar el modelo de Teachable Machine ---
 @st.cache_resource
 def cargar_modelo():
-    modelo = tf.keras.models.load_model("keras_model.h5")
-    return modelo
+    model = tf.keras.models.load_model("keras_model.h5")
+    return model
 
-modelo = cargar_modelo()
+model = cargar_modelo()
 
-# Preprocesamiento
-def preparar_imagen(imagen, tamaño=(224, 224)):
-    imagen = imagen.resize(tamaño)
+# --- Configuración de la app ---
+st.set_page_config(page_title="Verificación de acceso", layout="centered")
+st.title("🔐 Verificación de acceso con Teachable Machine")
+st.write("Sube una imagen para comprobar si eres un usuario autorizado.")
+
+# Entrada de texto
+texto = st.text_input("Escribe el comando para abrir la puerta (ej: abrir la puerta)")
+
+# Cargar imagen
+imagen_cargada = st.file_uploader("Sube una imagen para verificar identidad", type=["jpg", "png"])
+
+# Procesamiento de imagen para modelo Teachable Machine (224x224)
+def preparar_imagen(imagen):
+    imagen = imagen.resize((224, 224))
     imagen = imagen.convert("RGB")
     imagen = np.array(imagen) / 255.0
     imagen = np.expand_dims(imagen, axis=0)
     return imagen
 
-# Interfaz
-st.set_page_config(page_title="Acceso con Reconocimiento Facial", layout="centered")
-st.title("🔐 Acceso Inteligente con Keras + Streamlit")
+# Etiquetas (ajusta según tu modelo)
+etiquetas = ["No autorizado", "Autorizado"]  # Teachable Machine generalmente da output como softmax
 
-texto_ingresado = st.text_input("Comando (ejemplo: abrir la puerta)")
-imagen_usuario = st.file_uploader("Sube una imagen (jpg o png)", type=["jpg", "png"])
-
+# Verificación
 if st.button("Verificar acceso"):
-    if not texto_ingresado or not imagen_usuario:
-        st.warning("⚠️ Escribe el comando y sube una imagen.")
-    elif "abrir la puerta" not in texto_ingresado.lower():
-        st.error("❌ Comando incorrecto. Usa 'abrir la puerta'")
+    if not texto or "abrir la puerta" not in texto.lower():
+        st.error("❌ Comando incorrecto. Debes escribir: 'abrir la puerta'")
+    elif not imagen_cargada:
+        st.warning("⚠️ Debes subir una imagen.")
     else:
-        imagen = Image.open(imagen_usuario)
-        imagen_preparada = preparar_imagen(imagen)
-        prediccion = modelo.predict(imagen_preparada)
-        clase = np.argmax(prediccion, axis=1)[0]
+        imagen = Image.open(imagen_cargada)
+        imagen_procesada = preparar_imagen(imagen)
 
-        if clase == 1:
-            st.success("✅ Acceso concedido. ¡Puerta abierta!")
-            st.image(imagen, caption="Usuario autorizado", width=200)
+        prediccion = model.predict(imagen_procesada)
+        clase = np.argmax(prediccion)
+        confianza = np.max(prediccion)
+
+        st.write(f"📊 Predicción: **{etiquetas[clase]}** con {confianza*100:.2f}% de confianza.")
+
+        if clase == 1:  # Autorizado
+            st.success("✅ Acceso concedido. ¡Bienvenido!")
+            st.image(imagen, width=200)
         else:
-            st.error("❌ Acceso denegado. Usuario no reconocido.")
+            st.error("❌ Acceso denegado. No autorizado.")
