@@ -1,5 +1,6 @@
 import streamlit as st
 import tensorflow as tf
+from tensorflow.keras.models import load_model  # ✅ IMPORTACIÓN NECESARIA
 import numpy as np
 from PIL import Image
 import os
@@ -8,56 +9,45 @@ import platform
 # --- Configuración de la app ---
 st.set_page_config(page_title="Verificación de acceso", layout="centered")
 st.title("🔐 Verificación de acceso con Teachable Machine")
-
-# Mostrar versión de Python
 st.write("Versión de Python:", platform.python_version())
+st.write("Sube una imagen o toma una foto para comprobar si eres un usuario autorizado.")
 
 # Entrada de texto para comando
 texto = st.text_input("Escribe el comando para abrir la puerta (ej: abrir la puerta)")
 
 # Subir imagen o tomar foto
 imagen_cargada = st.file_uploader("Sube una imagen para verificar identidad", type=["jpg", "png"])
-st.write("Sube una imagen o toma una foto para comprobar si eres un usuario autorizado.")
+imagen_camara = st.camera_input("O toma una foto con la cámara")
 
-model = load_model('keras_model.h5')
-data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+# --- Cargar modelo ---
+model_path = 'keras_model.h5'
+model = None
+if os.path.exists(model_path):
+    try:
+        model = load_model(model_path)
+    except Exception as e:
+        st.error(f"❌ Error al cargar el modelo: {e}")
+else:
+    st.error(f"❌ Archivo del modelo no encontrado: {model_path}")
 
-st.title("Reconocimiento de Imágenes")
-#st.write("Versión de Python:", platform.python_version())
+# --- Mostrar una imagen decorativa (opcional) ---
 image = Image.open('OIG5.jpg')
 st.image(image, width=350)
+
 with st.sidebar:
-    st.subheader("Usando un modelo entrenado en teachable Machine puedes Usarlo en esta app para identificar")
-img_file_buffer = st.camera_input("Toma una Foto")
+    st.subheader("📷 Usa una foto para verificar si estás autorizado")
 
-if img_file_buffer is not None:
-    # To read image file buffer with OpenCV:
+# --- Preparar imagen ---
+def preparar_imagen(imagen):
+    imagen = imagen.resize((224, 224))
+    imagen = imagen.convert("RGB")
+    img_array = np.array(imagen).astype(np.float32)
+    normalized = (img_array / 127.0) - 1
     data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
-   #To read image file buffer as a PIL Image:
-    img = Image.open(img_file_buffer)
+    data[0] = normalized
+    return data
 
-    newsize = (224, 224)
-    img = img.resize(newsize)
-    # To convert PIL Image to numpy array:
-    img_array = np.array(img)
-
-    # Normalize the image
-    normalized_image_array = (img_array.astype(np.float32) / 127.0) - 1
-    # Load the image into the array
-    data[0] = normalized_image_array
-
-    # run the inference
-    prediction = model.predict(data)
-    print(prediction)
-    if prediction[0][0]>0.5:
-      st.header('Persona Autorizada, con Probabilidad: '+str( prediction[0][0]) )
-    if prediction[0][1]>0.5:
-      st.header('Persona no autorizada, con Probabilidad: '+str( prediction[0][1]))
-    #if prediction[0][2]>0.5:
-    # st.header('Derecha, con Probabilidad: '+str( prediction[0][2]))
-
-
-# Verificación al hacer clic
+# --- Verificación manual desde imagen o cámara ---
 if st.button("Verificar acceso"):
     if model is None:
         st.error("❌ No se pudo cargar el modelo. La verificación no es posible.")
@@ -71,13 +61,13 @@ if st.button("Verificar acceso"):
         else:
             imagen = Image.open(imagen_camara)
 
-        clase, confianza, prediccion = predecir(imagen)
+        datos = preparar_imagen(imagen)
+        prediccion = model.predict(datos)
 
-        st.write(f"📊 Predicción: **{etiquetas[clase]}** con {confianza*100:.2f}% de confianza.")
-        st.write(f"Detalles predicción cruda: {prediccion}")
-
-        if clase == 1:  # Autorizado
-            st.success("✅ Acceso concedido. ¡Bienvenido!")
-            st.image(imagen, width=200)
+        if prediccion[0][0] > 0.5:
+            st.success(f"✅ Persona Autorizada, con probabilidad: {prediccion[0][0]:.2f}")
+        elif prediccion[0][1] > 0.5:
+            st.error(f"❌ Persona No Autorizada, con probabilidad: {prediccion[0][1]:.2f}")
         else:
-            st.error("❌ Acceso denegado. No autorizado.")
+            st.warning("⚠️ No se pudo determinar la identidad con suficiente confianza.")
+        st.image(imagen, width=200)
