@@ -2,19 +2,28 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-
-# --- Cargar el modelo de Teachable Machine ---
-@st.cache_resource
-def cargar_modelo():
-    model = tf.keras.models.load_model("keras_model.h5")
-    return model
-
-model = cargar_modelo()
+import os
 
 # --- Configuración de la app ---
 st.set_page_config(page_title="Verificación de acceso", layout="centered")
 st.title("🔐 Verificación de acceso con Teachable Machine")
 st.write("Sube una imagen para comprobar si eres un usuario autorizado.")
+
+# --- Función para cargar el modelo con manejo de error ---
+@st.cache_resource
+def cargar_modelo():
+    model_path = "keras_model.h5"
+    if not os.path.exists(model_path):
+        st.error(f"❌ Archivo del modelo no encontrado en la ruta: {model_path}")
+        return None
+    try:
+        model = tf.keras.models.load_model(model_path)
+        return model
+    except Exception as e:
+        st.error(f"❌ Error cargando el modelo: {e}")
+        return None
+
+model = cargar_modelo()
 
 # Entrada de texto
 texto = st.text_input("Escribe el comando para abrir la puerta (ej: abrir la puerta)")
@@ -35,7 +44,9 @@ etiquetas = ["No autorizado", "Autorizado"]  # Teachable Machine generalmente da
 
 # Verificación
 if st.button("Verificar acceso"):
-    if not texto or "abrir la puerta" not in texto.lower():
+    if model is None:
+        st.error("❌ No se pudo cargar el modelo. La verificación no es posible.")
+    elif not texto or "abrir la puerta" not in texto.lower():
         st.error("❌ Comando incorrecto. Debes escribir: 'abrir la puerta'")
     elif not imagen_cargada:
         st.warning("⚠️ Debes subir una imagen.")
