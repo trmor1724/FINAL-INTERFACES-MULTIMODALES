@@ -1,6 +1,6 @@
 import streamlit as st
 import tensorflow as tf
-from tensorflow.keras.models import load_model  # ✅ IMPORTACIÓN NECESARIA
+from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
 import os
@@ -30,10 +30,6 @@ if os.path.exists(model_path):
 else:
     st.error(f"❌ Archivo del modelo no encontrado: {model_path}")
 
-# --- Mostrar una imagen decorativa (opcional) ---
-image = Image.open('OIG5.jpg')
-st.image(image, width=350)
-
 with st.sidebar:
     st.subheader("📷 Usa una foto para verificar si estás autorizado")
 
@@ -47,7 +43,7 @@ def preparar_imagen(imagen):
     data[0] = normalized
     return data
 
-# --- Verificación manual desde imagen o cámara ---
+# --- Verificación al hacer clic ---
 if st.button("Verificar acceso"):
     if model is None:
         st.error("❌ No se pudo cargar el modelo. La verificación no es posible.")
@@ -71,3 +67,4 @@ if st.button("Verificar acceso"):
         else:
             st.warning("⚠️ No se pudo determinar la identidad con suficiente confianza.")
         st.image(imagen, width=200)
+
