@@ -2,5 +2,3 @@ streamlit
 tensorflow
 numpy
 pillow
-paho-mqtt
-opencv-python-headless
