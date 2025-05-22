@@ -8,16 +8,12 @@ import platform
 
 # --- Configuración de la app ---
 st.set_page_config(page_title="Verificación de acceso", layout="centered")
-st.title("🔐 Verificación de acceso con Teachable Machine")
+st.title("🔐 Verificación de acceso a la casa")
 st.write("Versión de Python:", platform.python_version())
-st.write("Sube una imagen o toma una foto para comprobar si eres un usuario autorizado.")
 
 # Entrada de texto para comando
 texto = st.text_input("Escribe el comando para abrir la puerta (ej: abrir la puerta)")
 
-# Subir imagen o tomar foto
-imagen_cargada = st.file_uploader("Sube una imagen para verificar identidad", type=["jpg", "png"])
-imagen_camara = st.camera_input("O toma una foto con la cámara")
 
 # --- Cargar modelo ---
 model_path = 'keras_model.h5'
