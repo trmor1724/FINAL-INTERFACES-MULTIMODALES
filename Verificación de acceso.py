@@ -17,28 +17,45 @@ texto = st.text_input("Escribe el comando para abrir la puerta (ej: abrir la pue
 
 # Subir imagen o tomar foto
 imagen_cargada = st.file_uploader("Sube una imagen para verificar identidad", type=["jpg", "png"])
-imagen_camara = st.camera_input("O toma una foto con la cámara")
 st.write("Sube una imagen o toma una foto para comprobar si eres un usuario autorizado.")
 
-# Procesamiento de imagen para modelo Teachable Machine (224x224)
-def preparar_imagen(imagen):
-    imagen = imagen.resize((224, 224))
-    imagen = imagen.convert("RGB")
-    imagen_array = np.array(imagen).astype(np.float32)
-    # Normalización que espera el modelo
-    imagen_normalizada = (imagen_array / 127.0) - 1
-    imagen_normalizada = np.expand_dims(imagen_normalizada, axis=0)
-    return imagen_normalizada
+model = load_model('keras_model.h5')
+data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
 
-# Etiquetas (ajusta según tu modelo)
-etiquetas = ["No autorizado", "Autorizado"]  # Ajusta según tu modelo
+st.title("Reconocimiento de Imágenes")
+#st.write("Versión de Python:", platform.python_version())
+image = Image.open('OIG5.jpg')
+st.image(image, width=350)
+with st.sidebar:
+    st.subheader("Usando un modelo entrenado en teachable Machine puedes Usarlo en esta app para identificar")
+img_file_buffer = st.camera_input("Toma una Foto")
 
-def predecir(imagen):
-    imagen_preparada = preparar_imagen(imagen)
-    prediccion = model.predict(imagen_preparada)
-    clase = np.argmax(prediccion)
-    confianza = np.max(prediccion)
-    return clase, confianza, prediccion
+if img_file_buffer is not None:
+    # To read image file buffer with OpenCV:
+    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+   #To read image file buffer as a PIL Image:
+    img = Image.open(img_file_buffer)
+
+    newsize = (224, 224)
+    img = img.resize(newsize)
+    # To convert PIL Image to numpy array:
+    img_array = np.array(img)
+
+    # Normalize the image
+    normalized_image_array = (img_array.astype(np.float32) / 127.0) - 1
+    # Load the image into the array
+    data[0] = normalized_image_array
+
+    # run the inference
+    prediction = model.predict(data)
+    print(prediction)
+    if prediction[0][0]>0.5:
+      st.header('Persona Autorizada, con Probabilidad: '+str( prediction[0][0]) )
+    if prediction[0][1]>0.5:
+      st.header('Persona no autorizada, con Probabilidad: '+str( prediction[0][1]))
+    #if prediction[0][2]>0.5:
+    # st.header('Derecha, con Probabilidad: '+str( prediction[0][2]))
+
 
 # Verificación al hacer clic
 if st.button("Verificar acceso"):
