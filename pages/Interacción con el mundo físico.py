@@ -26,7 +26,7 @@ client1.on_publish = on_publish
 client1.connect(broker, port)
 
 # Cargar modelo
-model = load_model("Keras_Model.h5")
+model = load_model("keras_model.h5")
 
 # Configuración de Streamlit
 st.set_page_config(page_title="Cerradura Inteligente", layout="centered")
