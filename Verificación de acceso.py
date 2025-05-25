@@ -1,56 +1,49 @@
 import streamlit as st
-import tensorflow as tf
 import numpy as np
 from PIL import Image
+import tflite_runtime.interpreter as tflite
 
-# --- Cargar el modelo de Teachable Machine ---
-@st.cache_resource
-def cargar_modelo():
-    model = tf.keras.models.load_model("keras_model.h5")
-    return model
+# Leer etiquetas desde archivo
+with open("labels.txt", "r") as f:
+    etiquetas = [line.strip().split(' ', 1)[1] for line in f.readlines()]
 
-model = cargar_modelo()
+# Cargar modelo TFLite
+interpreter = tflite.Interpreter(model_path="model.tflite")
+interpreter.allocate_tensors()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
-# --- Configuración de la app ---
+def preparar_imagen(img):
+    img = img.resize((224, 224)).convert("RGB")
+    arr = np.array(img).astype(np.float32)
+    arr = (arr / 127.5) - 1  # Normalización para Teachable Machine
+    return np.expand_dims(arr, axis=0)
+
 st.set_page_config(page_title="Verificación de acceso", layout="centered")
-st.title("🔐 Verificación de acceso con Teachable Machine")
-st.write("Sube una imagen para comprobar si eres un usuario autorizado.")
+st.title("🔐 Verificación de acceso con modelo TFLite")
 
-# Entrada de texto
-texto = st.text_input("Escribe el comando para abrir la puerta (ej: abrir la puerta)")
+texto = st.text_input("Escribe el comando (ej: abrir la puerta)")
+imagen = st.file_uploader("Sube una imagen (jpg/png)", type=["jpg", "png"])
 
-# Cargar imagen
-imagen_cargada = st.file_uploader("Sube una imagen para verificar identidad", type=["jpg", "png"])
-
-# Procesamiento de imagen para modelo Teachable Machine (224x224)
-def preparar_imagen(imagen):
-    imagen = imagen.resize((224, 224))
-    imagen = imagen.convert("RGB")
-    imagen = np.array(imagen) / 255.0
-    imagen = np.expand_dims(imagen, axis=0)
-    return imagen
-
-# Etiquetas (ajusta según tu modelo)
-etiquetas = ["No autorizado", "Autorizado"]  # Teachable Machine generalmente da output como softmax
-
-# Verificación
 if st.button("Verificar acceso"):
     if not texto or "abrir la puerta" not in texto.lower():
-        st.error("❌ Comando incorrecto. Debes escribir: 'abrir la puerta'")
-    elif not imagen_cargada:
+        st.error("❌ Comando incorrecto. Usa: 'abrir la puerta'")
+    elif not imagen:
         st.warning("⚠️ Debes subir una imagen.")
     else:
-        imagen = Image.open(imagen_cargada)
-        imagen_procesada = preparar_imagen(imagen)
+        img = Image.open(imagen)
+        entrada = preparar_imagen(img)
 
-        prediccion = model.predict(imagen_procesada)
-        clase = np.argmax(prediccion)
-        confianza = np.max(prediccion)
+        interpreter.set_tensor(input_details[0]['index'], entrada)
+        interpreter.invoke()
+        salida = interpreter.get_tensor(output_details[0]['index'])[0]
 
-        st.write(f"📊 Predicción: **{etiquetas[clase]}** con {confianza*100:.2f}% de confianza.")
+        clase = np.argmax(salida)
+        confianza = np.max(salida)
 
-        if clase == 1:  # Autorizado
-            st.success("✅ Acceso concedido. ¡Bienvenido!")
-            st.image(imagen, width=200)
+        st.image(img, width=200)
+        st.write(f"📊 Resultado: **{etiquetas[clase]}** con {confianza*100:.2f}% de confianza")
+        if clase == 0:
+            st.success("✅ Acceso concedido")
         else:
-            st.error("❌ Acceso denegado. No autorizado.")
+            st.error("❌ Acceso denegado")
