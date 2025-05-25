@@ -1,0 +1,2 @@
+0 Persona Autorizada
+1 Persona  No Autorizada
