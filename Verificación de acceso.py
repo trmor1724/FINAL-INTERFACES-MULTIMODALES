@@ -4,9 +4,6 @@ from PIL import Image
 import tflite_runtime.interpreter as tflite
 import os
 
-# --- Verifica archivos disponibles ---
-st.write("📂 Archivos en el entorno:", os.listdir())
-
 # --- Cargar etiquetas desde labels.txt ---
 try:
     with open("labels.txt", "r") as f:
