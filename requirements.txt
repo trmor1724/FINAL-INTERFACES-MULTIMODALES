@@ -1,7 +1,7 @@
 keras
 streamlit
 streamlit-webrtc
-
+bokeh
 opencv-python-headless
 Pillow
 tensorflow==2.12
