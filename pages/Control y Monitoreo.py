@@ -2,6 +2,23 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
+def on_publish(client,userdata,result):             #create function for callback
+    print("el dato ha sido publicado \n")
+    pass
+
+def on_message(client, userdata, message):
+    global message_received
+    time.sleep(2)
+    message_received=str(message.payload.decode("utf-8"))
+    st.write(message_received)
+
+broker="broker.hivemq.com"
+port=1883
+client1= paho.Client("APP_CERR")
+client1.on_message = on_message
+client1.on_publish = on_publish
+client1.connect(broker,port)
+
 # --- Simulación de estado de la puerta y registros ---
 if "estado_puerta" not in st.session_state:
     st.session_state.estado_puerta = " "
@@ -24,7 +41,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     if st.button("🔐 Cerrar puerta"):
-        st.write("cerrar")
+        st.write("Cerrando puerta")
         st.session_state.estado_puerta = "Cerrada"
         st.session_state.registros.append(
             {"Fecha": datetime.now(), "Acción": "Puerta cerrada manualmente", "Método": "Botón"}
@@ -32,7 +49,7 @@ with col1:
 
 with col2:
     if st.button("🔓 Abrir puerta"):
-        st.write("Abrir")
+        st.write("Abriendo puerta")
         st.session_state.estado_puerta = "Abierta"
         st.session_state.registros.append(
             {"Fecha": datetime.now(), "Acción": "Puerta abierta manualmente", "Método": "Botón"}
@@ -40,6 +57,7 @@ with col2:
 
 # --- Activar alarma (simulación) ---
 if st.button("🚨 Activar alarma"):
+    st.write("Alarma activada")
     st.warning("⚠️ ¡Alarma activada!")
     st.session_state.registros.append(
         {"Fecha": datetime.now(), "Acción": "Alarma activada", "Método": "Botón"}
