@@ -48,6 +48,12 @@ if img_file_buffer is not None:
     else:
         st.error("❌ Acceso denegado – Persona no autorizada")
 
+# Paso 1: Entrada de texto
+st.header("Paso 1: Escribe el comando")
+texto_ingresado = st.text_input("Comando (ejemplo: abrir la puerta)")
+
+
+
 if st.button("Verificar acceso"):
     if not texto or "abrir la puerta" not in texto.lower():
         st.error("❌ Comando incorrecto. Debes escribir: 'abrir la puerta'")
