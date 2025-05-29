@@ -8,6 +8,27 @@ import numpy as np
 from PIL import Image as Image, ImageOps as ImagOps
 from keras.models import load_model
 
+page_style = """
+<style>
+/* Fondo principal */
+[data-testid="stAppViewContainer"] {
+    background-color: #1b3d1e;
+}
+
+/* Fondo del sidebar */
+[data-testid="stSidebar"] {
+    background-color: #38633c;
+}
+
+/* Color de todos los textos */
+[data-testid="stMarkdownContainer"] {
+    color: #ffffff;
+}
+</style>
+"""
+
+st.markdown(page_style, unsafe_allow_html=True)
+
 def on_publish(client,userdata,result):             #create function for callback
     print("el dato ha sido publicado \n")
     pass
