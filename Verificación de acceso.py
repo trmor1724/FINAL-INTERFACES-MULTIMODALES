@@ -1,45 +1,49 @@
 import streamlit as st
 import numpy as np
-#from PIL import Image
 from PIL import Image as Image, ImageOps as ImagOps
 from keras.models import load_model
-
 import platform
 
-# Muestra la versión de Python junto con detalles adicionales
-st.write("Versión de Python:", platform.python_version())
+# Mostrar versión del entorno
+st.write("🔧 Versión de Python:", platform.python_version())
 
+# Cargar modelo entrenado desde Teachable Machine
 model = load_model('keras_model.h5')
 data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
 
-st.title("Reconocimiento de Imágenes")
-#st.write("Versión de Python:", platform.python_version())
+# Título de la app
+st.title("🏠 Sistema de Casa Inteligente")
+
+# Descripción general
 with st.sidebar:
-    st.subheader("Usando un modelo entrenado en teachable Machine puedes Usarlo en esta app para identificar")
-img_file_buffer = st.camera_input("Toma una Foto")
+    st.subheader("📷 Reconocimiento de gestos para control del hogar")
+    st.markdown("""
+    Esta aplicación utiliza un modelo entrenado con Teachable Machine para reconocer gestos realizados frente a una cámara.  
+    Puedes usarla para controlar funciones de una casa inteligente, como abrir puertas, encender luces o activar alarmas.
+    """)
+
+# Entrada de cámara
+img_file_buffer = st.camera_input("📸 Realiza un gesto frente a la cámara")
 
 if img_file_buffer is not None:
-    # To read image file buffer with OpenCV:
-    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
-   #To read image file buffer as a PIL Image:
-    img = Image.open(img_file_buffer)
-
-    newsize = (224, 224)
-    img = img.resize(newsize)
-    # To convert PIL Image to numpy array:
+    # Procesar imagen capturada
+    img = Image.open(img_file_buffer).resize((224, 224)).convert("RGB")
     img_array = np.array(img)
-
-    # Normalize the image
     normalized_image_array = (img_array.astype(np.float32) / 127.0) - 1
-    # Load the image into the array
     data[0] = normalized_image_array
 
-    # run the inference
+    # Hacer predicción
     prediction = model.predict(data)
-    print(prediction)
-    if prediction[0][0]>0.5:
-      st.header('Izquierda, con Probabilidad: '+str( prediction[0][0]) )
-    if prediction[0][1]>0.5:
-      st.header('Arriba, con Probabilidad: '+str( prediction[0][1]))
-    #if prediction[0][2]>0.5:
-    # st.header('Derecha, con Probabilidad: '+str( prediction[0][2]))
+
+    # Mostrar resultado
+    st.image(img, caption="Imagen capturada", width=200)
+
+    if prediction[0][0] > 0.5:
+        st.success(f"📥 Gesto detectado: **Izquierda** – podría indicar cerrar persiana o apagar luz")
+        st.metric("Probabilidad", f"{prediction[0][0]*100:.2f}%")
+    if prediction[0][1] > 0.5:
+        st.success(f"📤 Gesto detectado: **Arriba** – podría indicar abrir puerta o encender ventilador")
+        st.metric("Probabilidad", f"{prediction[0][1]*100:.2f}%")
+    # Descomenta si tu modelo tiene más gestos:
+    # if prediction[0][2] > 0.5:
+    #     st.success(f"Gesto detectado: Derecha – acción personalizada")
