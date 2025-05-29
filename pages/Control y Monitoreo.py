@@ -15,8 +15,8 @@ st.set_page_config(page_title="Control y Monitoreo", layout="centered")
 st.title("🚪 Panel de Control y Monitoreo del Acceso")
 
 # --- Estado actual de la puerta ---
-st.subheader("🔒 Estado actual de la puerta:")
-st.info(f"**{st.session_state.estado_puerta}**")
+#st.subheader("🔒 Estado actual de la puerta:")
+#st.info(f"**{st.session_state.estado_puerta}**")
 
 # --- Botones de control manual ---
 st.subheader("🎮 Control manual:")
@@ -24,6 +24,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     if st.button("🔐 Cerrar puerta"):
+        st.write("cerrar")
         st.session_state.estado_puerta = "Cerrada"
         st.session_state.registros.append(
             {"Fecha": datetime.now(), "Acción": "Puerta cerrada manualmente", "Método": "Botón"}
@@ -31,6 +32,7 @@ with col1:
 
 with col2:
     if st.button("🔓 Abrir puerta"):
+        st.write("Abrir")
         st.session_state.estado_puerta = "Abierta"
         st.session_state.registros.append(
             {"Fecha": datetime.now(), "Acción": "Puerta abierta manualmente", "Método": "Botón"}
