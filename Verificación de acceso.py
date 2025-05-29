@@ -55,10 +55,10 @@ if img_file_buffer is not None:
     prediction = model.predict(data)
     print(prediction)
     if prediction[0][0]>0.4:
-      st.header('Abriendo')
+      st.header('Persona autorizada')
       client1.publish("servo","{'gesto': 'persona autorizada'}",qos=0, retain=False)
       time.sleep(0.2)
     if prediction[0][1]>0.4:
-      st.header('Cerrando')
+      st.header('Persona no autorizada')
       client1.publish("servo","{'gesto': 'persona no autorizada'}",qos=0, retain=False)
       time.sleep(0.2)  
