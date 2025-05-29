@@ -8,4 +8,4 @@ tensorflow==2.12
 pyserial==3.5
 pandas==2.0.3
 plotly==5.18.0
-paho-mqtt
+paho-mqtt== 1.6.1
