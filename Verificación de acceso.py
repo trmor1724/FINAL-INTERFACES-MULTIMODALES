@@ -7,6 +7,10 @@ import platform
 # Mostrar versión del entorno
 st.write("🔧 Versión de Python:", platform.python_version())
 
+# Cargar etiquetas desde labels.txt
+with open("labels.txt", "r", encoding="utf-8") as f:
+    etiquetas = [line.strip().split(" ", 1)[1] for line in f.readlines()]
+
 # Cargar modelo
 model = load_model('keras_model.h5')
 data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
@@ -36,8 +40,10 @@ if img_file_buffer is not None:
 
     st.image(img, caption="📷 Imagen capturada", width=200)
     st.metric("🔍 Confianza del modelo", f"{probabilidad*100:.2f}%")
+    st.markdown(f"🧠 Resultado del modelo: **{etiquetas[clase]}**")
 
-    if clase == 1 and probabilidad > 0.1:
-        st.success("✅ Persona **autorizada** – Acceso concedido.")
+    # Clasificación basada en etiquetas (0 = Autorizado)
+    if clase == 0 and probabilidad > 0.6:
+        st.success("✅ Acceso concedido – Persona autorizada")
     else:
-        st.error("❌ Persona **no autorizada** – Acceso denegado.")
+        st.error("❌ Acceso denegado – Persona no autorizada")
