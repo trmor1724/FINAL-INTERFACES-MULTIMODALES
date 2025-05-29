@@ -1,64 +1,87 @@
 import streamlit as st
-import tensorflow as tf
-from tensorflow.keras.layers import DepthwiseConv2D
 import numpy as np
 from PIL import Image
+import os
 
-# Solución para el error de DepthwiseConv2D
-custom_objects = {'DepthwiseConv2D': DepthwiseConv2D}
+# Verificar e instalar dependencias correctas
+try:
+    import tensorflow as tf
+    from tensorflow.keras.models import load_model
+except ImportError:
+    st.error("Paquetes no encontrados. Instalando dependencias...")
+    os.system("pip install tensorflow==2.10.0 protobuf==3.20.3")
+    import tensorflow as tf
+    from tensorflow.keras.models import load_model
 
+# Configuración de la aplicación
+st.set_page_config(page_title="Verificación de Acceso", layout="centered")
+st.title("🔐 Sistema de Verificación Biométrica")
+
+# Carga del modelo con manejo de errores
 @st.cache_resource
-def cargar_modelo():
+def cargar_modelo_seguro():
     try:
-        model = tf.keras.models.load_model(
-            "keras_model.h5",
-            custom_objects=custom_objects,
-            compile=False
-        )
+        # Solución para problemas de capas custom
+        custom_objects = {
+            'DepthwiseConv2D': tf.keras.layers.DepthwiseConv2D
+        }
+        
+        if not os.path.exists("keras_model.h5"):
+            st.error("Archivo del modelo no encontrado")
+            st.stop()
+            
+        model = load_model("keras_model.h5", 
+                         custom_objects=custom_objects,
+                         compile=False)
         return model
     except Exception as e:
-        st.error(f"Error al cargar el modelo: {str(e)}")
+        st.error(f"Error crítico: {str(e)}")
+        st.error("Prueba ejecutar: pip install tensorflow==2.10.0 protobuf==3.20.3")
         st.stop()
 
-model = cargar_modelo()
+model = cargar_modelo_seguro()
 
-# Resto del código permanece igual...
-CLASS_NAMES = ["No autorizado", "Autorizado"]
-
-def preprocess_image(image):
-    img = Image.open(image)
-    img = img.resize((224, 224))
+# Procesamiento de imágenes
+def preparar_imagen(archivo_imagen):
+    img = Image.open(archivo_imagen)
+    img = img.resize((224, 224)).convert('RGB')
     img_array = np.array(img) / 255.0
     return np.expand_dims(img_array, axis=0)
 
 # Interfaz de usuario
-st.title("🔐 Sistema de Verificación")
-
-password = st.text_input("Comando secreto:")
-img_file = st.file_uploader("Imagen de verificación", type=["jpg", "png"])
-
-if st.button("Verificar"):
-    if not password or "abrir la puerta" not in password.lower():
-        st.error("Comando incorrecto")
-        st.stop()
+with st.form("form_verificacion"):
+    comando = st.text_input("Ingrese el comando de seguridad:")
+    imagen = st.file_uploader("Cargar imagen de verificación", 
+                             type=["jpg", "jpeg", "png"])
     
-    if not img_file:
-        st.warning("Sube una imagen")
-        st.stop()
-    
-    try:
-        img = preprocess_image(img_file)
-        prediction = model.predict(img)
-        class_id = np.argmax(prediction)
-        confidence = np.max(prediction)
-        
-        st.image(Image.open(img_file), width=200)
-        st.write(f"Estado: {CLASS_NAMES[class_id]} ({confidence*100:.1f}%)")
-        
-        if class_id == 1 and confidence > 0.7:
-            st.success("✅ Acceso concedido")
+    if st.form_submit_button("Verificar Acceso"):
+        if not comando or "abrir la puerta" not in comando.lower():
+            st.error("Comando incorrecto")
+        elif not imagen:
+            st.warning("Debe cargar una imagen")
         else:
-            st.error("❌ Acceso denegado")
-            
-    except Exception as e:
-        st.error(f"Error: {str(e)}")
+            try:
+                # Procesamiento
+                img_ready = preparar_imagen(imagen)
+                
+                # Predicción
+                with st.spinner("Analizando..."):
+                    pred = model.predict(img_ready)
+                    clase = np.argmax(pred)
+                    confianza = np.max(pred)
+                
+                # Resultados
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.image(imagen, width=200)
+                with col2:
+                    st.metric("Confianza", f"{confianza*100:.2f}%")
+                
+                if clase == 1 and confianza > 0.7:
+                    st.success("✅ Verificación exitosa")
+                    st.balloons()
+                else:
+                    st.error("❌ Acceso denegado")
+                    
+            except Exception as e:
+                st.error(f"Error en procesamiento: {str(e)}")
