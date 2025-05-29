@@ -51,6 +51,7 @@ with col1:
 with col2:
     if st.button("🔓 Abrir puerta"):
         st.write("Abriendo puerta")
+        client1.publish("servo","{'gesto': 'persona autorizada'}",qos=0, retain=False)
         st.session_state.estado_puerta = "Abierta"
         st.session_state.registros.append(
             {"Fecha": datetime.now(), "Acción": "Puerta abierta manualmente", "Método": "Botón"}
@@ -60,6 +61,7 @@ with col2:
 if st.button("🚨 Activar alarma"):
     st.write("Alarma activada")
     st.warning("⚠️ ¡Alarma activada!")
+    client1.publish("servo","{'gesto': 'persona no autorizada'}",qos=0, retain=False)
     st.session_state.registros.append(
         {"Fecha": datetime.now(), "Acción": "Alarma activada", "Método": "Botón"}
     )
