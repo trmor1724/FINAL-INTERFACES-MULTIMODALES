@@ -19,7 +19,7 @@ contourpy >=1
 numpy==1.26.3
 packaging >=16.8
 
-pillow >=7.1.0
+pillow
 PyYAML >=3.10
 tornado >=5.1
 xyzservices >=2021.09.1
