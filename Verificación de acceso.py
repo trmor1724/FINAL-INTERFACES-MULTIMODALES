@@ -4,93 +4,59 @@ from PIL import Image
 import tflite_runtime.interpreter as tflite
 import os
 
-# Configuración segura para Streamlit Cloud
-try:
-    st.set_page_config(
-        page_title="Verificación Biométrica",
-        page_icon="🔐",
-        layout="centered"
-    )
-except:
-    st.warning("Error menor en configuración de página")
+st.set_page_config(page_title="Verificación Biométrica", layout="centered")
+st.title("🔐 Verificación de acceso con modelo TFLite")
 
-# Verificación de archivos esenciales
-ESSENTIAL_FILES = {
-    "model.tflite": "Modelo de reconocimiento",
-    "labels.txt": "Etiquetas de clasificación"
-}
-
-for file, desc in ESSENTIAL_FILES.items():
-    if not os.path.exists(file):
-        st.error(f"ARCHIVO FALTANTE: {file} ({desc})")
-        st.stop()
-
-# Cargar etiquetas
-try:
-    with open("labels.txt", "r", encoding="utf-8") as f:
-        labels = [line.strip().split(" ", 1)[1] for line in f.readlines()]
-except Exception as e:
-    st.error(f"ERROR EN LABELS: {str(e)}")
+if not os.path.exists("model.tflite"):
+    st.error("❌ Falta el archivo 'model.tflite'. Agrégalo al proyecto.")
     st.stop()
 
-# Inicialización del modelo TFLite
+if not os.path.exists("labels.txt"):
+    st.error("❌ Falta el archivo 'labels.txt'.")
+    st.stop()
+
+with open("labels.txt", "r", encoding="utf-8") as f:
+    labels = [line.strip().split(" ", 1)[1] for line in f]
+
 @st.cache_resource
-def load_tflite_model():
-    try:
-        interpreter = tflite.Interpreter(model_path="model.tflite")
-        interpreter.allocate_tensors()
-        return interpreter
-    except Exception as e:
-        st.error(f"ERROR EN MODELO: {str(e)}")
-        st.stop()
+def cargar_modelo():
+    interpreter = tflite.Interpreter(model_path="model.tflite")
+    interpreter.allocate_tensors()
+    return interpreter
 
-model = load_tflite_model()
+interpreter = cargar_modelo()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
-# Procesamiento de imágenes optimizado
-def process_image(upload):
-    try:
-        img = Image.open(upload).convert("RGB").resize((224, 224))
-        return (np.array(img, dtype=np.float32) / 127.5) - 1.0
-    except Exception as e:
-        st.error(f"ERROR EN IMAGEN: {str(e)}")
-        return None
+def procesar_imagen(uploaded_file):
+    img = Image.open(uploaded_file).convert("RGB").resize((224, 224))
+    img_array = np.array(img).astype(np.float32)
+    normalizado = (img_array / 127.5) - 1
+    return np.expand_dims(normalizado, axis=0), img
 
-# Interfaz de usuario
-st.title("🔒 Sistema de Autenticación Biométrica")
+texto = st.text_input("🔑 Comando de voz/texto:", placeholder="Ej: abrir la puerta")
+imagen = st.file_uploader("📷 Imagen de identificación:", type=["jpg", "png", "jpeg"])
+foto = st.camera_input("O usa tu cámara")
 
-with st.form("auth_form"):
-    command = st.text_input("Frase de acceso:", placeholder="Ej: abrir la puerta")
-    image = st.file_uploader("Imagen de identidad:", type=["jpg", "png", "jpeg"])
-    
-    if st.form_submit_button("Validar Identidad"):
-        if not command or "abrir la puerta" not in command.lower():
-            st.error("❌ Frase incorrecta. Use: 'abrir la puerta'")
-        elif not image:
-            st.warning("⚠️ Suba una imagen de identificación")
+if st.button("🔍 Verificar"):
+    if "abrir la puerta" not in texto.lower():
+        st.error("❌ Comando incorrecto. Usa 'abrir la puerta'")
+    elif not imagen and not foto:
+        st.warning("⚠️ Por favor sube una imagen o toma una foto.")
+    else:
+        input_data, preview = procesar_imagen(imagen or foto)
+        interpreter.set_tensor(input_details[0]['index'], input_data)
+        interpreter.invoke()
+        resultado = interpreter.get_tensor(output_details[0]['index'])[0]
+
+        pred = np.argmax(resultado)
+        conf = np.max(resultado)
+
+        st.image(preview, width=200)
+        st.metric("Confianza", f"{conf*100:.2f}%")
+        st.success(f"Predicción: {labels[pred]}")
+
+        if pred == 1 and conf > 0.7:
+            st.success("✅ Acceso autorizado")
         else:
-            input_data = process_image(image)
-            if input_data is not None:
-                try:
-                    # Configurar entrada/salida del modelo
-                    input_details = model.get_input_details()
-                    output_details = model.get_output_details()
-                    
-                    # Inferencia
-                    model.set_tensor(input_details[0]['index'], np.expand_dims(input_data, axis=0))
-                    model.invoke()
-                    results = model.get_tensor(output_details[0]['index'])[0]
-                    
-                    # Resultados
-                    confidence = np.max(results)
-                    class_id = np.argmax(results)
-                    
-                    st.image(image, width=200)
-                    st.metric("Confianza", f"{confidence*100:.2f}%")
-                    
-                    if class_id == 1 and confidence > 0.7:
-                        st.success("✅ Identidad confirmada - Acceso autorizado")
-                    else:
-                        st.error("❌ Identidad no reconocida - Acceso denegado")
-                        
-                except Exception as e:
-                    st.error(f"ERROR EN INFERENCIA: {str(e)}")
+            st.error("❌ Acceso denegado")
