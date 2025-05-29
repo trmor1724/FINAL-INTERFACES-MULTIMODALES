@@ -1,24 +1,20 @@
 import streamlit as st
 import tensorflow as tf
+from tensorflow.keras.layers import DepthwiseConv2D
 import numpy as np
 from PIL import Image
-import os
 
-# --- Configuración inicial ---
-st.set_page_config(page_title="Verificación de acceso", layout="centered")
-st.title("🔐 Verificación de acceso con IA")
+# Solución para el error de DepthwiseConv2D
+custom_objects = {'DepthwiseConv2D': DepthwiseConv2D}
 
-# --- Verificar y cargar el modelo ---
 @st.cache_resource
 def cargar_modelo():
-    # Verificar si el archivo existe
-    if not os.path.exists("keras_model.h5"):
-        st.error("ERROR: No se encuentra 'keras_model.h5'")
-        st.stop()
-    
     try:
-        # Cargar modelo con compatibilidad para diferentes versiones de TF
-        model = tf.keras.models.load_model("keras_model.h5", compile=False)
+        model = tf.keras.models.load_model(
+            "keras_model.h5",
+            custom_objects=custom_objects,
+            compile=False
+        )
         return model
     except Exception as e:
         st.error(f"Error al cargar el modelo: {str(e)}")
@@ -26,69 +22,43 @@ def cargar_modelo():
 
 model = cargar_modelo()
 
-# --- Definir etiquetas ---
-CLASS_NAMES = ["No autorizado", "Autorizado"]  # Ajustar según tu modelo
+# Resto del código permanece igual...
+CLASS_NAMES = ["No autorizado", "Autorizado"]
 
-# --- Función de preprocesamiento ---
 def preprocess_image(image):
     img = Image.open(image)
-    img = img.resize((224, 224))  # Tamaño requerido por Teachable Machine
-    img_array = np.array(img) / 255.0  # Normalización
-    img_array = np.expand_dims(img_array, axis=0)  # Añadir dimensión batch
-    return img_array
+    img = img.resize((224, 224))
+    img_array = np.array(img) / 255.0
+    return np.expand_dims(img_array, axis=0)
 
-# --- Interfaz de usuario ---
-st.subheader("Autenticación de dos factores")
+# Interfaz de usuario
+st.title("🔐 Sistema de Verificación")
 
-# 1. Factor de conocimiento (contraseña)
-password = st.text_input("Escribe el comando secreto:")
+password = st.text_input("Comando secreto:")
+img_file = st.file_uploader("Imagen de verificación", type=["jpg", "png"])
 
-# 2. Factor de posesión (imagen biométrica)
-uploaded_file = st.file_uploader("Sube tu imagen de verificación", 
-                               type=["jpg", "jpeg", "png"])
-camera_image = st.camera_input("O toma una foto ahora")
-
-# --- Procesamiento ---
-if st.button("Verificar acceso", type="primary"):
-    # Validar contraseña
+if st.button("Verificar"):
     if not password or "abrir la puerta" not in password.lower():
-        st.error("Comando incorrecto. Intenta con: 'abrir la puerta'")
+        st.error("Comando incorrecto")
         st.stop()
     
-    # Obtener imagen (prioridad: cámara > archivo)
-    image_source = camera_image if camera_image is not None else uploaded_file
-    
-    if image_source is None:
-        st.warning("Debes subir una imagen o tomar una foto")
+    if not img_file:
+        st.warning("Sube una imagen")
         st.stop()
     
     try:
-        # Preprocesar imagen
-        img_array = preprocess_image(image_source)
+        img = preprocess_image(img_file)
+        prediction = model.predict(img)
+        class_id = np.argmax(prediction)
+        confidence = np.max(prediction)
         
-        # Mostrar imagen
-        st.image(Image.open(image_source), 
-                caption="Imagen de verificación",
-                width=200)
+        st.image(Image.open(img_file), width=200)
+        st.write(f"Estado: {CLASS_NAMES[class_id]} ({confidence*100:.1f}%)")
         
-        # Realizar predicción
-        with st.spinner("Verificando identidad..."):
-            predictions = model.predict(img_array)
-            confidence = np.max(predictions)
-            class_id = np.argmax(predictions)
+        if class_id == 1 and confidence > 0.7:
+            st.success("✅ Acceso concedido")
+        else:
+            st.error("❌ Acceso denegado")
             
-            st.progress(int(confidence * 100))
-            
-            # Mostrar resultados
-            st.subheader(f"Resultado: {CLASS_NAMES[class_id]}")
-            st.write(f"Confianza: {confidence*100:.2f}%")
-            
-            # Tomar decisión
-            if class_id == 1 and confidence > 0.7:  # Umbral ajustable
-                st.success("✅ Acceso concedido")
-                st.balloons()
-            else:
-                st.error("❌ Acceso denegado")
-                
     except Exception as e:
-        st.error(f"Error en el procesamiento: {str(e)}")
+        st.error(f"Error: {str(e)}")
