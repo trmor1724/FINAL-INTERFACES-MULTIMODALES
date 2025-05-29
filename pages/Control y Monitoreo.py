@@ -7,7 +7,7 @@ page_style = """
 <style>
 /* Fondo principal */
 [data-testid="stAppViewContainer"] {
-    background-color: #1b3d1a;
+    background-color: #1b3d1e;
 }
 
 /* Fondo del sidebar */
@@ -21,6 +21,8 @@ page_style = """
 }
 </style>
 """
+
+st.markdown(page_style, unsafe_allow_html=True)
 
 st.markdown(page_style, unsafe_allow_html=True)
 
