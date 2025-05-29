@@ -37,7 +37,7 @@ if img_file_buffer is not None:
     st.image(img, caption="📷 Imagen capturada", width=200)
     st.metric("🔍 Confianza del modelo", f"{probabilidad*100:.2f}%")
 
-    if clase == 1 and probabilidad > 0.6:
+    if clase == 1 and probabilidad > 0.1:
         st.success("✅ Persona **autorizada** – Acceso concedido.")
     else:
         st.error("❌ Persona **no autorizada** – Acceso denegado.")
