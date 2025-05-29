@@ -4,7 +4,7 @@ from datetime import datetime
 
 # --- Simulación de estado de la puerta y registros ---
 if "estado_puerta" not in st.session_state:
-    st.session_state.estado_puerta = "Cerrada"
+    st.session_state.estado_puerta = " "
 if "registros" not in st.session_state:
     st.session_state.registros = []
 if "modo" not in st.session_state:
