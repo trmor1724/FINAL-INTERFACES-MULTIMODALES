@@ -1,62 +1,46 @@
 import streamlit as st
+import cv2
 import numpy as np
-from PIL import Image
-import tflite_runtime.interpreter as tflite
-import os
+#from PIL import Image
+from PIL import Image as Image, ImageOps as ImagOps
+from keras.models import load_model
 
-st.set_page_config(page_title="Verificación Biométrica", layout="centered")
-st.title("🔐 Verificación de acceso con modelo TFLite")
+import platform
 
-if not os.path.exists("model.tflite"):
-    st.error("❌ Falta el archivo 'model.tflite'. Agrégalo al proyecto.")
-    st.stop()
+# Muestra la versión de Python junto con detalles adicionales
+st.write("Versión de Python:", platform.python_version())
 
-if not os.path.exists("labels.txt"):
-    st.error("❌ Falta el archivo 'labels.txt'.")
-    st.stop()
+model = load_model('keras_model.h5')
+data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
 
-with open("labels.txt", "r", encoding="utf-8") as f:
-    labels = [line.strip().split(" ", 1)[1] for line in f]
+st.title("Reconocimiento de Imágenes")
+#st.write("Versión de Python:", platform.python_version())
+with st.sidebar:
+    st.subheader("Usando un modelo entrenado en teachable Machine puedes Usarlo en esta app para identificar")
+img_file_buffer = st.camera_input("Toma una Foto")
 
-@st.cache_resource
-def cargar_modelo():
-    interpreter = tflite.Interpreter(model_path="model.tflite")
-    interpreter.allocate_tensors()
-    return interpreter
+if img_file_buffer is not None:
+    # To read image file buffer with OpenCV:
+    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+   #To read image file buffer as a PIL Image:
+    img = Image.open(img_file_buffer)
 
-interpreter = cargar_modelo()
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
+    newsize = (224, 224)
+    img = img.resize(newsize)
+    # To convert PIL Image to numpy array:
+    img_array = np.array(img)
 
-def procesar_imagen(uploaded_file):
-    img = Image.open(uploaded_file).convert("RGB").resize((224, 224))
-    img_array = np.array(img).astype(np.float32)
-    normalizado = (img_array / 127.5) - 1
-    return np.expand_dims(normalizado, axis=0), img
+    # Normalize the image
+    normalized_image_array = (img_array.astype(np.float32) / 127.0) - 1
+    # Load the image into the array
+    data[0] = normalized_image_array
 
-texto = st.text_input("🔑 Comando de voz/texto:", placeholder="Ej: abrir la puerta")
-imagen = st.file_uploader("📷 Imagen de identificación:", type=["jpg", "png", "jpeg"])
-foto = st.camera_input("O usa tu cámara")
-
-if st.button("🔍 Verificar"):
-    if "abrir la puerta" not in texto.lower():
-        st.error("❌ Comando incorrecto. Usa 'abrir la puerta'")
-    elif not imagen and not foto:
-        st.warning("⚠️ Por favor sube una imagen o toma una foto.")
-    else:
-        input_data, preview = procesar_imagen(imagen or foto)
-        interpreter.set_tensor(input_details[0]['index'], input_data)
-        interpreter.invoke()
-        resultado = interpreter.get_tensor(output_details[0]['index'])[0]
-
-        pred = np.argmax(resultado)
-        conf = np.max(resultado)
-
-        st.image(preview, width=200)
-        st.metric("Confianza", f"{conf*100:.2f}%")
-        st.success(f"Predicción: {labels[pred]}")
-
-        if pred == 1 and conf > 0.7:
-            st.success("✅ Acceso autorizado")
-        else:
-            st.error("❌ Acceso denegado")
+    # run the inference
+    prediction = model.predict(data)
+    print(prediction)
+    if prediction[0][0]>0.5:
+      st.header('Izquierda, con Probabilidad: '+str( prediction[0][0]) )
+    if prediction[0][1]>0.5:
+      st.header('Arriba, con Probabilidad: '+str( prediction[0][1]))
+    #if prediction[0][2]>0.5:
+    # st.header('Derecha, con Probabilidad: '+str( prediction[0][2]))
